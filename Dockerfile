@@ -1,7 +1,8 @@
 FROM juanluisbaptiste/xpra-base:latest
 MAINTAINER Juan Luis Baptiste <juan.baptiste@gmail.com>
-ENV BTC_VERSION "0.20.1"
-ENV BTC_GUI_DOWNLOAD_URL https://bitcoin.org/bin/bitcoin-core-${BTC_VERSION}/bitcoin-${BTC_VERSION}-x86_64-linux-gnu.tar.gz
+ENV BTC_VERSION "29.1"
+ENV BTC_GUI_DOWNLOAD_URL https://bitcoincore.org/bin/bitcoin-core-${BTC_VERSION}/bitcoin-${BTC_VERSION}-x86_64-linux-gnu.tar.gz
+ENV BTC_TARBALL_SHA256 "2dddeaa8c0626ec446b6f21b64c0f3565a1e7e67ff0b586d25043cbd686c9455"
 COPY local-entrypoint.sh /
 
 RUN apt-get update && \
@@ -12,8 +13,9 @@ RUN apt-get update && \
 
 USER user
 WORKDIR /home/user
-RUN curl ${BTC_GUI_DOWNLOAD_URL} -O
-RUN tar zxf bitcoin-${BTC_VERSION}-x86_64-linux-gnu.tar.gz && \
+RUN curl -fsSLO ${BTC_GUI_DOWNLOAD_URL} && \
+    echo "${BTC_TARBALL_SHA256}  bitcoin-${BTC_VERSION}-x86_64-linux-gnu.tar.gz" | sha256sum -c - && \
+    tar zxf bitcoin-${BTC_VERSION}-x86_64-linux-gnu.tar.gz && \
     mv bitcoin-${BTC_VERSION} bitcoin-core && \
     rm bitcoin-${BTC_VERSION}-x86_64-linux-gnu.tar.gz && \
     mkdir .bitcoin
