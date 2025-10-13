@@ -1,7 +1,7 @@
 version: '3'
 services:
   wallet:
-    image: juanluisbaptiste/bitcoin-wallet:latest
+    image: ghcr.io/gentoorax/docker-bitcoin-wallet:1.0.3-alpha-a29bf63
     container_name: bitcoin-wallet
     volumes:
       -  /tmp/.X11-unix:/tmp/.X11-unix
