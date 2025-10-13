@@ -7,7 +7,7 @@ COPY local-entrypoint.sh /
 
 RUN apt-get update && \
     apt-get install -y curl zip libfontconfig1 libfreetype6 \
-                       libegl1-mesa libgl1-mesa-glx && \
+                       libegl1-mesa libgl1-mesa-glx libxcb-icccm4 && \
     apt-get clean && \
     chmod 755 /local-entrypoint.sh
 
