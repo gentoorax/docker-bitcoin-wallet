@@ -6,9 +6,35 @@ ENV BTC_TARBALL_SHA256 "2dddeaa8c0626ec446b6f21b64c0f3565a1e7e67ff0b586d25043cbd
 COPY local-entrypoint.sh /
 
 RUN apt-get update && \
-    apt-get install -y curl zip libfontconfig1 libfreetype6 \
-                       libegl1-mesa libgl1-mesa-glx libxcb-icccm4 && \
+    apt-get install -y \
+        curl \
+        zip \
+        libfontconfig1 \
+        libfreetype6 \
+        libegl1-mesa \
+        libgl1-mesa-glx \
+        libice6 \
+        libsm6 \
+        libx11-6 \
+        libx11-xcb1 \
+        libxcb1 \
+        libxcb-icccm4 \
+        libxcb-image0 \
+        libxcb-keysyms1 \
+        libxcb-randr0 \
+        libxcb-render0 \
+        libxcb-render-util0 \
+        libxcb-shape0 \
+        libxcb-shm0 \
+        libxcb-sync1 \
+        libxcb-util1 \
+        libxcb-xfixes0 \
+        libxcb-xinerama0 \
+        libxcb-xkb1 \
+        libxkbcommon0 \
+        libxkbcommon-x11-0 && \
     apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
     chmod 755 /local-entrypoint.sh
 
 USER user
