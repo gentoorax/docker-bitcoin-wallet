@@ -1,0 +1,82 @@
+name: Promote Image
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_tag:
+        description: Tag of the existing image to promote (for example 1.0.4-alpha-5b5d8de)
+        required: true
+        type: string
+      target_channel:
+        description: Promotion target
+        required: true
+        type: choice
+        options:
+          - rc
+          - stable
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE_NAME: ghcr.io/gentoorax/docker-bitcoin-wallet
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Retag and push
+        env:
+          SOURCE_TAG: ${{ inputs.source_tag }}
+          TARGET_CHANNEL: ${{ inputs.target_channel }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          docker pull "${IMAGE_NAME}:${SOURCE_TAG}"
+
+          BASE_VERSION="${SOURCE_TAG%%-*}"
+          if [ "${BASE_VERSION}" = "${SOURCE_TAG}" ]; then
+            BASE_VERSION="${SOURCE_TAG}"
+          fi
+
+          if [ "${TARGET_CHANNEL}" = "rc" ]; then
+            OWNER_PATH="${IMAGE_NAME#ghcr.io/}"
+            PACKAGE_OWNER="${OWNER_PATH%%/*}"
+            PACKAGE_NAME="${OWNER_PATH##*/}"
+
+            API_COMMON=(-fsSL -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json")
+            USER_URL="https://api.github.com/users/${PACKAGE_OWNER}/packages/container/${PACKAGE_NAME}/versions?per_page=100"
+            ORG_URL="https://api.github.com/orgs/${PACKAGE_OWNER}/packages/container/${PACKAGE_NAME}/versions?per_page=100"
+
+            PACKAGE_DATA="$(curl "${API_COMMON[@]}" "${USER_URL}" 2>/dev/null || curl "${API_COMMON[@]}" "${ORG_URL}" 2>/dev/null || echo "[]")"
+
+            RC_TAGS="$(echo "${PACKAGE_DATA}" | jq -r --arg base "${BASE_VERSION}" '.[] | .metadata.container.tags[]? | select(startswith($base + "-rc"))' || true)"
+            ESCAPED_BASE="$(printf '%s\n' "${BASE_VERSION}" | sed 's/[][\\/^$.|?*+(){}-]/\\&/g')"
+
+            if [ -n "${RC_TAGS}" ]; then
+              RC_MAX="$(printf '%s\n' "${RC_TAGS}" | sed -n "s/^${ESCAPED_BASE}-rc\([0-9]\+\)$/\1/p" | sort -n | tail -n1)"
+            else
+              RC_MAX=""
+            fi
+
+            if [ -z "${RC_MAX}" ]; then
+              RC_MAX=0
+            fi
+
+            NEXT_RC=$((RC_MAX + 1))
+            RC_TAG="${BASE_VERSION}-rc${NEXT_RC}"
+
+            docker tag "${IMAGE_NAME}:${SOURCE_TAG}" "${IMAGE_NAME}:${RC_TAG}"
+            docker push "${IMAGE_NAME}:${RC_TAG}"
+          else
+            docker tag "${IMAGE_NAME}:${SOURCE_TAG}" "${IMAGE_NAME}:${BASE_VERSION}"
+            docker push "${IMAGE_NAME}:${BASE_VERSION}"
+          fi
