@@ -34,7 +34,8 @@ RUN apt-get update && \
         libxcb-xkb1 \
         libxkbcommon0 \
         libxkbcommon-x11-0 \
-        wmctrl && \
+        wmctrl \
+        xdotool && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     chmod 755 /local-entrypoint.sh /usr/local/bin/launch-bitcoin.sh
