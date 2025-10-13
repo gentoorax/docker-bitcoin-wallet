@@ -4,6 +4,7 @@ ENV BTC_VERSION "29.1"
 ENV BTC_GUI_DOWNLOAD_URL https://bitcoincore.org/bin/bitcoin-core-${BTC_VERSION}/bitcoin-${BTC_VERSION}-x86_64-linux-gnu.tar.gz
 ENV BTC_TARBALL_SHA256 "2dddeaa8c0626ec446b6f21b64c0f3565a1e7e67ff0b586d25043cbd686c9455"
 COPY local-entrypoint.sh /
+COPY launch-bitcoin.sh /usr/local/bin/launch-bitcoin.sh
 
 RUN apt-get update && \
     apt-get install -y \
@@ -32,10 +33,11 @@ RUN apt-get update && \
         libxcb-xinerama0 \
         libxcb-xkb1 \
         libxkbcommon0 \
-        libxkbcommon-x11-0 && \
+        libxkbcommon-x11-0 \
+        wmctrl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    chmod 755 /local-entrypoint.sh
+    chmod 755 /local-entrypoint.sh /usr/local/bin/launch-bitcoin.sh
 
 USER user
 WORKDIR /home/user
