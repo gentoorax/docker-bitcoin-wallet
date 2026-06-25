@@ -12,9 +12,9 @@ Having the wallet available as docker container has some advantages like:
 
 ## Container images
 
-Prebuilt images are pushed to GitHub Container Registry. The current alpha release is:
+Prebuilt images are pushed to GitHub Container Registry. The current branch update targets Bitcoin Core `31.0` and uses the image tag:
 
-* `ghcr.io/gentoorax/docker-bitcoin-wallet:1.0.3-alpha-a29bf63`
+* `ghcr.io/gentoorax/docker-bitcoin-wallet:1.0.4-alpha-btc31`
 
 Pull the latest image (or the dev variant) with:
 
@@ -41,12 +41,12 @@ The wallet can be run in two ways:
 
 The `docker-compose` file mounts your X11 session's socket (/tmp/.X11-unix) so the container can connect back to your X server. To start the wallet with `docker compose`:
 
-    docker compose -p bitcoin-wallet up
+    XPRA_PASSWORD=replace-me docker compose -p bitcoin-wallet up
 
 To start the wallet in production mode the the `-d` parameter to the previous
 command:
 
-    docker compose -p bitcoin-wallet up -d
+    XPRA_PASSWORD=replace-me docker compose -p bitcoin-wallet up -d
 
 You can see the container logs with this command:
 
@@ -59,9 +59,9 @@ screen.
 
 This is useful to run the wallet (and leave it running if you want) on a remote server and avoid wasting huge amounts of space locally holding the blockchain copy. I run it on a Synology NAS, which compared to my laptop it has tons of spare space and is always on and connected to the Internet.
 
-To run the wallet inside a web browser you need to define the environment variable `ENABLE_WEB_VIEW=yes`. Then start the wallet with `docker compose` as before:
+To run the wallet inside a web browser you need to define the environment variable `ENABLE_WEB_VIEW=yes`. Set a non-default `XPRA_PASSWORD` before exposing the session, then start the wallet with `docker compose` as before:
 
-    docker compose -p bitcoin-wallet up
+    XPRA_PASSWORD=replace-me docker compose -p bitcoin-wallet up
 
 After some minutes the wallet will be available in http://[host]:10000, were host is the server name or IP address of the server running the wallet container.
 
