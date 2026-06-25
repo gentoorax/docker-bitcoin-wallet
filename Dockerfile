@@ -1,12 +1,14 @@
 FROM ghcr.io/gentoorax/xpra-base:1.0.5-alpha-3f4fc0b
 LABEL maintainer="Christopher Law <chris@chrislaw.me>"
 ENV BTC_VERSION "31.0"
-ENV BTC_GUI_DOWNLOAD_URL https://bitcoincore.org/bin/bitcoin-core-${BTC_VERSION}/bitcoin-${BTC_VERSION}-x86_64-linux-gnu.tar.gz
-ENV BTC_SHA256SUMS_URL https://bitcoincore.org/bin/bitcoin-core-${BTC_VERSION}/SHA256SUMS
-ENV BTC_SHA256SUMS_ASC_URL https://bitcoincore.org/bin/bitcoin-core-${BTC_VERSION}/SHA256SUMS.asc
-ENV BTC_GUIX_SIGS_COMMIT 9b5f169268d27933c4e1fc1815ddb4b8463ebe05
-ENV BTC_GUIX_SIGS_URL https://github.com/bitcoin-core/guix.sigs/archive/${BTC_GUIX_SIGS_COMMIT}.tar.gz
-ENV BTC_TARBALL_SHA256 "d3e4c58a35b1d0a97a457462c94f55501ad167c660c245cb1ffa565641c65074"
+ARG BTC_GUI_DOWNLOAD_URL=https://bitcoincore.org/bin/bitcoin-core-${BTC_VERSION}/bitcoin-${BTC_VERSION}-x86_64-linux-gnu.tar.gz
+ARG BTC_SHA256SUMS_URL=https://bitcoincore.org/bin/bitcoin-core-${BTC_VERSION}/SHA256SUMS
+ARG BTC_SHA256SUMS_ASC_URL=https://bitcoincore.org/bin/bitcoin-core-${BTC_VERSION}/SHA256SUMS.asc
+ARG BTC_GUIX_SIGS_COMMIT=9b5f169268d27933c4e1fc1815ddb4b8463ebe05
+ARG BTC_GUIX_SIGS_URL=https://github.com/bitcoin-core/guix.sigs/archive/${BTC_GUIX_SIGS_COMMIT}.tar.gz
+ARG BTC_TRUSTED_FINGERPRINTS="E777299FC265DD04793070EB944D35F9AC3DB76A 152812300785C96444D3334D17565732E08E5E41 ED9BDF7AD6A55E232E84524257FF9BDBCC301009 D1DBF2C4B96F2DEBF4C16654410108112E7EA81F"
+ARG BTC_TRUSTED_SIGNATURE_THRESHOLD=2
+ARG BTC_TARBALL_SHA256=d3e4c58a35b1d0a97a457462c94f55501ad167c660c245cb1ffa565641c65074
 COPY local-entrypoint.sh /
 COPY launch-bitcoin.sh /usr/local/bin/launch-bitcoin.sh
 COPY launch-xterm.sh /usr/local/bin/launch-xterm.sh
@@ -68,6 +70,7 @@ RUN apt-get update && \
         'Categories=System;TerminalEmulator;' \
         'StartupNotify=true' \
         > /usr/share/applications/xterm-wallet.desktop && \
+    sed -i 's/\r$//' /local-entrypoint.sh /usr/local/bin/launch-bitcoin.sh /usr/local/bin/launch-xterm.sh && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     chmod 755 /local-entrypoint.sh /usr/local/bin/launch-bitcoin.sh /usr/local/bin/launch-xterm.sh
@@ -80,11 +83,13 @@ RUN curl -fsSLO ${BTC_GUI_DOWNLOAD_URL} && \
     curl -fsSL ${BTC_GUIX_SIGS_URL} | tar xz && \
     export GNUPGHOME="$(mktemp -d)" && \
     gpg --batch --import guix.sigs-${BTC_GUIX_SIGS_COMMIT}/builder-keys/* && \
-    gpg --batch --verify SHA256SUMS.asc SHA256SUMS && \
+    gpg --batch --status-fd=1 --verify SHA256SUMS.asc SHA256SUMS > gpg-status.log 2>/dev/null && \
+    trusted_count="$(awk '/^\[GNUPG:\] VALIDSIG / { print $3 }' gpg-status.log | sort -u | awk 'BEGIN { split(ENVIRON["BTC_TRUSTED_FINGERPRINTS"], trusted, " "); for (i in trusted) allow[trusted[i]] = 1 } allow[$1] { count++ } END { print count + 0 }')" && \
+    test "${trusted_count}" -ge "${BTC_TRUSTED_SIGNATURE_THRESHOLD}" && \
     grep " bitcoin-${BTC_VERSION}-x86_64-linux-gnu.tar.gz\$" SHA256SUMS | sha256sum -c - && \
     tar zxf bitcoin-${BTC_VERSION}-x86_64-linux-gnu.tar.gz && \
     mv bitcoin-${BTC_VERSION} bitcoin-core && \
-    rm -rf "${GNUPGHOME}" guix.sigs-${BTC_GUIX_SIGS_COMMIT} SHA256SUMS SHA256SUMS.asc bitcoin-${BTC_VERSION}-x86_64-linux-gnu.tar.gz && \
+    rm -rf "${GNUPGHOME}" guix.sigs-${BTC_GUIX_SIGS_COMMIT} SHA256SUMS SHA256SUMS.asc gpg-status.log bitcoin-${BTC_VERSION}-x86_64-linux-gnu.tar.gz && \
     mkdir -p .bitcoin && \
     chmod 700 .bitcoin && \
     mkdir -p .config/openbox && \
