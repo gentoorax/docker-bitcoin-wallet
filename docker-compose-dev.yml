@@ -1,7 +1,7 @@
 version: '2'
 services:
   wallet:
-    image: ghcr.io/gentoorax/docker-bitcoin-wallet:1.0.3-alpha-a29bf63
+    image: ghcr.io/gentoorax/docker-bitcoin-wallet:1.0.4-alpha-btc31
     build:
       context: .
       dockerfile: Dockerfile
@@ -13,10 +13,14 @@ services:
       - DISPLAY=unix$DISPLAY
       - DEBUG=yes
     network_mode: host
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     # ports:
     #  - "10000:10000"
   wallet-data:
-    image: ghcr.io/gentoorax/docker-bitcoin-wallet:1.0.3-alpha-a29bf63
+    image: ghcr.io/gentoorax/docker-bitcoin-wallet:1.0.4-alpha-btc31
     container_name: wallet-data
     volumes:
     -  /tmp/.X11-unix:/tmp/.X11-unix

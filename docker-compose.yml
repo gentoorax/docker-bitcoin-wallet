@@ -1,7 +1,7 @@
 version: '3'
 services:
   wallet:
-    image: ghcr.io/gentoorax/docker-bitcoin-wallet:1.0.3-alpha-a29bf63
+    image: ghcr.io/gentoorax/docker-bitcoin-wallet:1.0.4-alpha-btc31
     container_name: bitcoin-wallet
     volumes:
       -  /tmp/.X11-unix:/tmp/.X11-unix
@@ -10,10 +10,14 @@ services:
     environment:
       - ENABLE_WEB_VIEW=yes
       - DISPLAY=unix$DISPLAY
-      - DEBUG=yes
+      - DEBUG=no
       - USER_UID=1026
-      - XPRA_USER=user # Optional XPRA authentication user name
-      - XPRA_PASSWORD=password # Optional XPRA authentication user name
+      - XPRA_USER=${XPRA_USER:-user}
+      - XPRA_PASSWORD=${XPRA_PASSWORD:?Set XPRA_PASSWORD before exposing web view}
     network_mode: host
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     # ports:
     #  - "10000:10000"
