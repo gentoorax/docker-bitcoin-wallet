@@ -1,4 +1,4 @@
-FROM ghcr.io/gentoorax/xpra-base:1.0.5-alpha-3f4fc0b
+FROM ghcr.io/gentoorax/xpra-base:2.0.8-alpha-da71e25
 LABEL maintainer="Christopher Law <chris@chrislaw.me>"
 ENV BTC_VERSION "31.0"
 ARG BTC_GUI_DOWNLOAD_URL=https://bitcoincore.org/bin/bitcoin-core-${BTC_VERSION}/bitcoin-${BTC_VERSION}-x86_64-linux-gnu.tar.gz
@@ -11,12 +11,12 @@ ARG BTC_TRUSTED_SIGNATURE_THRESHOLD=2
 ARG BTC_TARBALL_SHA256=d3e4c58a35b1d0a97a457462c94f55501ad167c660c245cb1ffa565641c65074
 COPY local-entrypoint.sh /
 COPY launch-bitcoin.sh /usr/local/bin/launch-bitcoin.sh
-COPY launch-xterm.sh /usr/local/bin/launch-xterm.sh
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         ca-certificates \
         curl \
+        desktop-file-utils \
         gnupg \
         libfontconfig1 \
         libfreetype6 \
@@ -43,7 +43,10 @@ RUN apt-get update && \
         libxcb-xkb1 \
         libxkbcommon0 \
         libxkbcommon-x11-0 \
+        menu \
+        openbox \
         wmctrl \
+        xdg-utils \
         xdotool \
         xterm && \
     printf '%s\n' \
@@ -58,22 +61,26 @@ RUN apt-get update && \
         'Categories=Network;Finance;' \
         'StartupNotify=true' \
         > /usr/share/applications/bitcoin-wallet.desktop && \
+    mkdir -p /etc/xdg/menus && \
     printf '%s\n' \
-        '[Desktop Entry]' \
-        'Type=Application' \
-        'Version=1.0' \
-        'Name=XTerm' \
-        'Comment=Launch an xterm terminal' \
-        'Exec=/usr/local/bin/launch-xterm.sh' \
-        'Icon=utilities-terminal' \
-        'Terminal=false' \
-        'Categories=System;TerminalEmulator;' \
-        'StartupNotify=true' \
-        > /usr/share/applications/xterm-wallet.desktop && \
-    sed -i 's/\r$//' /local-entrypoint.sh /usr/local/bin/launch-bitcoin.sh /usr/local/bin/launch-xterm.sh && \
+        '<!DOCTYPE Menu PUBLIC "-//freedesktop//DTD Menu 1.0//EN"' \
+        ' "http://www.freedesktop.org/standards/menu-spec/1.0/menu.dtd">' \
+        '<Menu>' \
+        '  <Name>Applications</Name>' \
+        '  <DefaultAppDirs/>' \
+        '  <DefaultDirectoryDirs/>' \
+        '  <Include>' \
+        '    <All/>' \
+        '  </Include>' \
+        '</Menu>' \
+        > /etc/xdg/menus/applications.menu && \
+    cp /etc/xdg/menus/applications.menu /etc/xdg/menus/debian-menu.menu && \
+    cp /etc/xdg/menus/applications.menu /etc/xdg/menus/kde-debian-menu.menu && \
+    update-desktop-database /usr/share/applications && \
+    sed -i 's/\r$//' /local-entrypoint.sh /usr/local/bin/launch-bitcoin.sh && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    chmod 755 /local-entrypoint.sh /usr/local/bin/launch-bitcoin.sh /usr/local/bin/launch-xterm.sh
+    chmod 755 /local-entrypoint.sh /usr/local/bin/launch-bitcoin.sh
 
 USER user
 WORKDIR /home/user

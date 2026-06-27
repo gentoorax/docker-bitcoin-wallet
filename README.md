@@ -14,7 +14,7 @@ Having the wallet available as docker container has some advantages like:
 
 Prebuilt images are pushed to GitHub Container Registry. The current branch update targets Bitcoin Core `31.0` and uses the image tag:
 
-* `ghcr.io/gentoorax/docker-bitcoin-wallet:1.0.4-alpha-btc31`
+* `ghcr.io/gentoorax/docker-bitcoin-wallet:2.0.13-alpha-a973523`
 
 Pull the latest image (or the dev variant) with:
 
