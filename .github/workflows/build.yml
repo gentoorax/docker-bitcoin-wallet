@@ -16,6 +16,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Load version prefix
+        run: cat .drone/version-prefix.env >> "${GITHUB_ENV}"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -29,8 +32,8 @@ jobs:
       - name: Compute version metadata
         id: meta
         run: |
-          MAJOR="${{ vars.MAJOR_VERSION }}"
-          MINOR="${{ vars.MINOR_VERSION }}"
+          MAJOR="${VERSION_MAJOR:-1}"
+          MINOR="${VERSION_MINOR:-0}"
           if [ -z "${MAJOR}" ]; then
             MAJOR="1"
           fi
