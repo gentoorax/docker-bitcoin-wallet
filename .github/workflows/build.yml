@@ -10,20 +10,22 @@ jobs:
     permissions:
       contents: read
       packages: write
+      attestations: write
+      id-token: write
     env:
       IMAGE_NAME: ghcr.io/gentoorax/docker-bitcoin-wallet
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Load version prefix
         run: cat .drone/version-prefix.env >> "${GITHUB_ENV}"
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -52,13 +54,74 @@ jobs:
           echo "pre_release=${PRE_RELEASE}" >> "${GITHUB_OUTPUT}"
 
       - name: Build and push image
-        uses: docker/build-push-action@v5
+        id: build
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: true
+          provenance: mode=max
+          sbom: true
           tags: |
             ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.pre_release }}
           labels: |
             org.opencontainers.image.source=${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.version=${{ steps.meta.outputs.pre_release }}
+
+      - name: Generate release evidence
+        env:
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          IMAGE_TAG: ${{ steps.meta.outputs.pre_release }}
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+
+          mkdir -p provenance
+
+          cat > provenance/release-metadata.json <<EOF
+          {
+            "image": {
+              "name": "${IMAGE_NAME}",
+              "tag": "${IMAGE_TAG}",
+              "digest": "${IMAGE_DIGEST}"
+            },
+            "source": {
+              "repository": "${GITHUB_REPOSITORY}",
+              "commit": "${GITHUB_SHA}",
+              "ref": "${GITHUB_REF}",
+              "workflow": "${GITHUB_WORKFLOW}",
+              "workflow_ref": "${GITHUB_WORKFLOW_REF}"
+            },
+            "build": {
+              "provider": "github-actions",
+              "runner": "${RUNNER_NAME}",
+              "run_id": "${GITHUB_RUN_ID}",
+              "run_number": "${GITHUB_RUN_NUMBER}",
+              "run_attempt": "${GITHUB_RUN_ATTEMPT}",
+              "run_url": "https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}",
+              "started_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            },
+            "provenance": {
+              "image_attestation": "docker-buildx",
+              "artifact_attestation": "github-artifact-attestation"
+            }
+          }
+          EOF
+
+          printf '%s@%s\n' "${IMAGE_NAME}" "${IMAGE_DIGEST}" > provenance/image-digest.txt
+
+      - name: Upload release evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: provenance-${{ steps.meta.outputs.pre_release }}
+          path: provenance/
+
+      - name: Attest release metadata
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: provenance/release-metadata.json
+
+      - name: Attest image digest manifest
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: provenance/image-digest.txt
