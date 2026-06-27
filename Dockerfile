@@ -1,4 +1,4 @@
-FROM ghcr.io/gentoorax/xpra-base:2.0.8-alpha-da71e25
+FROM ghcr.io/gentoorax/xpra-base:2.0.14-rc1
 LABEL maintainer="Christopher Law <chris@chrislaw.me>"
 ENV BTC_VERSION "31.0"
 ARG BTC_GUI_DOWNLOAD_URL=https://bitcoincore.org/bin/bitcoin-core-${BTC_VERSION}/bitcoin-${BTC_VERSION}-x86_64-linux-gnu.tar.gz
