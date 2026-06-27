@@ -20,8 +20,8 @@ RUN apt-get update && \
         gnupg \
         libfontconfig1 \
         libfreetype6 \
-        libegl1-mesa \
-        libgl1-mesa-glx \
+        libegl1 \
+        libgl1 \
         libice6 \
         libsm6 \
         libx11-6 \
